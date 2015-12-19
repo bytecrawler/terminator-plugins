@@ -34,7 +34,7 @@ class ClusterConnect(plugin.Plugin):
         self._menu = menu
         self._menuitems = menuitems
         clusters = property_reader.CLUSTERS
-        var_submenu = menubuilder.MenuBuilder.add_submenu(menuitems, 'ClusterConnect')
+        var_submenu = menubuilder.add_submenu(menuitems, 'ClusterConnect')
         groups = property_reader.read_groups()
         groups.sort()
         if len(groups) > 0:
@@ -82,15 +82,15 @@ class ClusterConnect(plugin.Plugin):
     def check_for_users_in_cluster(self, servers, menu_sub, cluster, terminal, users, sudousers):
         if len(servers) > 1:
             # Add a submenu for server, if there is more than one
-            cluster_sub_servers = menubuilder.MenuBuilder.add_submenu(menu_sub, cluster)
+            cluster_sub_servers = menubuilder.add_submenu(menu_sub, cluster)
             for server in servers:
                 # add submenu for users
-                cluster_sub_users = menubuilder.MenuBuilder.add_submenu(cluster_sub_servers, server)
+                cluster_sub_users = menubuilder.add_submenu(cluster_sub_servers, server)
                 self.create_cluster_sub_servers(server, users, terminal, cluster, cluster_sub_users, sudousers)
             print "Iterated"
         else:
             # If there is just one server, don't add a server submenu
-            cluster_sub_users = menubuilder.MenuBuilder.add_submenu(menu_sub, cluster)
+            cluster_sub_users = menubuilder.add_submenu(menu_sub, cluster)
             for user in users:
                 # Add menu for split and new tab
                 self.add_split_submenu(terminal, cluster, user,
@@ -121,9 +121,9 @@ class ClusterConnect(plugin.Plugin):
     def add_split_submenu(self, terminal, cluster, user, server, cluster_menu_sub, sudo=False):
         # Add a menu if you connect to just one server
         if sudo:
-            cluster_sub_split = menubuilder.MenuBuilder.add_submenu(cluster_menu_sub, user + " (sudo)")
+            cluster_sub_split = menubuilder.add_submenu(cluster_menu_sub, user + " (sudo)")
         else:
-            cluster_sub_split = menubuilder.MenuBuilder.add_submenu(cluster_menu_sub, user)
+            cluster_sub_split = menubuilder.add_submenu(cluster_menu_sub, user)
 
         menuitem = gtk.MenuItem('Horizontal Split')
         menuitem.connect('activate', self.connect_server,
