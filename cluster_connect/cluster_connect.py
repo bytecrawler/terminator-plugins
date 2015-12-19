@@ -52,21 +52,10 @@ class ClusterConnect(plugin.Plugin):
     def create_cluster_submenu(self, cluster, group, menu_sub):
         # Get users and add current to connect with current user
         users = property_reader.get_property(cluster, 'user')
-        current_user_prop = property_reader.get_property(cluster, 'current_user', True)
         sudousers = property_reader.get_property(cluster, 'sudouser')
-
-        if users:
-            users.sort()
-            if current_user_prop and current_user not in users:
-                users.insert(0, current_user)
-        elif current_user_prop:
-            users = [current_user]
-            # Get sudousers for current user
-        if sudousers:
-            sudousers.sort()
-            # Get servers and insert cluster for cluster connect
         servers = property_reader.get_property(cluster, 'server')
-        servers.sort()
+        self.build_users_and_sort(users, sudousers, servers, cluster)
+
         if len(servers) > 1:
             if 'cluster' not in servers:
                 servers.insert(0, 'cluster')
@@ -114,6 +103,21 @@ class ClusterConnect(plugin.Plugin):
                     menuitem.connect('activate', connector.connect_cluster,
                                      terminal, cluster, sudouser, 'cluster', True)
                     cluster_sub_users.append(menuitem)
+
+    def build_users_and_sort(self, users, sudousers, servers, cluster):
+
+        current_user_prop = property_reader.get_property(cluster, 'current_user', True)
+        if users:
+            users.sort()
+            if current_user_prop and current_user not in users:
+                users.insert(0, current_user)
+        elif current_user_prop:
+            users = [current_user]
+            # Get sudousers for current user
+        if sudousers:
+            sudousers.sort()
+            # Get servers and insert cluster for cluster connect
+        servers.sort()
 
 
 
