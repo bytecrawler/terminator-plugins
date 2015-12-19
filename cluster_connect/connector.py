@@ -1,5 +1,7 @@
 import property_reader
 import getpass
+import random
+import menubuilder
 
 current_user = getpass.getuser()
 
@@ -69,3 +71,36 @@ def start_ssh(terminal, user, hostname, cluster, sudo):
         if command[len(command) - 1] != '\n':
             command += '\n'
             terminal.vte.feed_child(command)
+
+
+def connect_cluster(widget, terminal, cluster, user, server_connect, sudo=False):
+    if property_reader.CLUSTERS.has_key(cluster):
+        # get the first tab and add a new one so you don't need to care
+        # about which window is focused
+        focussed_terminal = None
+        term_window = terminal.terminator.windows[0]
+        # add a new window where we connect to the servers, and switch to this tab
+        term_window.tab_new(term_window.get_focussed_terminal())
+        visible_terminals = term_window.get_visible_terminals()
+        for visible_terminal in visible_terminals:
+            if visible_terminal.vte.is_focus():
+                focussed_terminal = visible_terminal
+
+                # Create a group, if the terminals should be grouped
+        servers = property_reader.get_property(cluster, 'server')
+        servers.sort()
+
+        # Remove cluster from server, there shouldn't be a server named cluster
+        if 'cluster' in servers:
+            servers.remove('cluster')
+
+        old_group = terminal.group
+        if property_reader.get_property(cluster, 'groupby'):
+            groupname = cluster + "-" + str(random.randint(0, 999))
+            terminal.really_create_group(term_window, groupname)
+        else:
+            groupname = 'none'
+        menubuilder.split_terminal(focussed_terminal, servers, user, term_window, cluster, groupname, sudo)
+        # Set old window back to the last group, as really_create_group
+        # sets the window to the specified group
+        terminal.set_group(term_window, old_group)

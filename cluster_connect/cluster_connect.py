@@ -42,14 +42,14 @@ class ClusterConnect(plugin.Plugin):
             for group in groups:
                 sub_groups = menubuilder.add_submenu(var_submenu, group)
                 for cluster in clusters:
-                    self.add_cluster_submenu(terminal, cluster, group, sub_groups)
+                    self.create_cluster_submenu(cluster, group, sub_groups)
 
             menuitem = gtk.SeparatorMenuItem()
             var_submenu.append(menuitem)
         for cluster in clusters:
-            self.add_cluster_submenu(terminal, cluster, 'none', var_submenu)
+            self.create_cluster_submenu(cluster, 'none', var_submenu)
 
-    def add_cluster_submenu(self, terminal, cluster, group, menu_sub):
+    def create_cluster_submenu(self, cluster, group, menu_sub):
         # Get users and add current to connect with current user
         users = property_reader.get_property(cluster, 'user')
         current_user_prop = property_reader.get_property(cluster, 'current_user', True)
@@ -77,7 +77,7 @@ class ClusterConnect(plugin.Plugin):
         group_tmp = property_reader.get_property(cluster, 'group', 'none')
         # Check if users exists for cluster
         if 'users' in locals() and group_tmp == group:
-            self.check_for_users_in_cluster(servers, menu_sub, cluster, terminal, users, sudousers)
+            self.check_for_users_in_cluster(servers, menu_sub, cluster, self._terminal, users, sudousers)
 
     def check_for_users_in_cluster(self, servers, menu_sub, cluster, terminal, users, sudousers):
         if len(servers) > 1:
@@ -100,7 +100,7 @@ class ClusterConnect(plugin.Plugin):
                 menubuilder.add_split_submenu(terminal, cluster, user, server, cluster_sub_users)
             else:
                 menuitem = gtk.MenuItem(user)
-                menuitem.connect('activate', self.connect_cluster,
+                menuitem.connect('activate', connector.connect_cluster,
                                  terminal, cluster, user, 'cluster')
                 cluster_sub_users.append(menuitem)
                 # add submenu for sudousers
@@ -110,73 +110,10 @@ class ClusterConnect(plugin.Plugin):
                     menubuilder.add_split_submenu(terminal, cluster, sudouser, server, cluster_sub_users, True)
                 else:
                     menuitem = gtk.MenuItem(sudouser + " (sudo)")
-                    menuitem.connect('activate', self.connect_cluster,
+                    menuitem.connect('activate', connector.connect_cluster,
                                      terminal, cluster, sudouser, 'cluster', True)
                     cluster_sub_users.append(menuitem)
 
-    def connect_cluster(self, widget, terminal, cluster, user, server_connect, sudo=False):
 
-        if property_reader.CLUSTERS.has_key(cluster):
-            # get the first tab and add a new one so you don't need to care
-            # about which window is focused
-            focussed_terminal = None
-            term_window = terminal.terminator.windows[0]
-            # add a new window where we connect to the servers, and switch to this tab
-            term_window.tab_new(term_window.get_focussed_terminal())
-            visible_terminals = term_window.get_visible_terminals()
-            for visible_terminal in visible_terminals:
-                if visible_terminal.vte.is_focus():
-                    focussed_terminal = visible_terminal
 
-                    # Create a group, if the terminals should be grouped
-            servers = property_reader.get_property(cluster, 'server')
-            servers.sort()
-
-            # Remove cluster from server, there shouldn't be a server named cluster
-            if 'cluster' in servers:
-                servers.remove('cluster')
-
-            old_group = terminal.group
-            if property_reader.get_property(cluster, 'groupby'):
-                groupname = cluster + "-" + str(random.randint(0, 999))
-                terminal.really_create_group(term_window, groupname)
-            else:
-                groupname = 'none'
-            self.split_terminal(focussed_terminal, servers, user,
-                                term_window, cluster, groupname, sudo)
-            # Set old window back to the last group, as really_create_group
-            # sets the window to the specified group
-            terminal.set_group(term_window, old_group)
-
-    def split_terminal(self, terminal, servers, user, window, cluster, groupname, sudo):
-        # Splits the window, the split count is limited by
-        # the count of servers given to the function
-        if property_reader.get_property(cluster, 'groupby'):
-            terminal.set_group(window, groupname)
-        server_count = len(servers)
-
-        if server_count > 1:
-            visible_terminals_temp = window.get_visible_terminals()
-            server1 = servers[:server_count / 2]
-            server2 = servers[server_count / 2:]
-
-        horiz_splits = property_reader.get_property(cluster, 'horiz_splits', 5)
-
-        if server_count > horiz_splits:
-            terminal.key_split_vert()
-        elif server_count > 1:
-            terminal.key_split_horiz()
-
-        if server_count > 1:
-            visible_terminals = window.get_visible_terminals()
-            for visible_terminal in visible_terminals:
-                if visible_terminal not in visible_terminals_temp:
-                    terminal2 = visible_terminal
-            self.split_terminal(terminal, server1, user, window,
-                                cluster, groupname, sudo)
-            self.split_terminal(terminal2, server2, user, window,
-                                cluster, groupname, sudo)
-
-        elif server_count == 1:
-            connector.start_ssh(terminal, user, servers[0], cluster, sudo)
 
